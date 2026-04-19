@@ -1,0 +1,15 @@
+# Ignore all scratch files/folders
+scratch/
+
+# IDE/Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Ignore environment variables files at the root level if any
+.env
+.env.local
+
+# Build output
+dist/
+build/
