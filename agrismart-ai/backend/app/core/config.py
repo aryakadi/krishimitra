@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     SNOWFLAKE_ROLE: str = "SYSADMIN"
     
     ALLOWED_ORIGINS: Union[str, List[str]] = ["http://localhost:5173", "http://localhost:3000"]
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     
     class Config:
         env_file = ".env"
