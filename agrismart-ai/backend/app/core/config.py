@@ -23,11 +23,22 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
     def get_allowed_origins(self) -> List[str]:
+        origins = []
         if isinstance(self.ALLOWED_ORIGINS, str):
             try:
-                return json.loads(self.ALLOWED_ORIGINS)
+                origins = json.loads(self.ALLOWED_ORIGINS)
+                if not isinstance(origins, list):
+                    origins = [str(origins)]
             except:
-                return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
-        return self.ALLOWED_ORIGINS
+                origins = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        elif isinstance(self.ALLOWED_ORIGINS, list):
+            origins = self.ALLOWED_ORIGINS.copy()
+            
+        # Forcefully inject the production Vercel frontend URL to bypass any deployment environment variable parsing bugs
+        vercel_url = "https://krishimitra-nine-wine.vercel.app"
+        if vercel_url not in origins:
+            origins.append(vercel_url)
+            
+        return origins
 
 settings = Settings()
