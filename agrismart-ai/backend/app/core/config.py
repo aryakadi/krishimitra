@@ -11,8 +11,11 @@ class Settings(BaseSettings):
     SNOWFLAKE_SCHEMA: str = "AGRI_SCHEMA"
     SNOWFLAKE_WAREHOUSE: str = "AGRISMART_WH"
     SNOWFLAKE_ROLE: str = "SYSADMIN"
-    
-    ALLOWED_ORIGINS: Union[str, List[str]] = ["http://localhost:5173", "http://localhost:3000"]
+    ALLOWED_ORIGINS: Union[str, List[str]] = [
+        "http://localhost:5173", 
+        "http://localhost:3000", 
+        "https://krishimitra-nine-wine.vercel.app"
+    ]
     GEMINI_MODEL: str = "gemini-2.5-flash"
     
     class Config:
