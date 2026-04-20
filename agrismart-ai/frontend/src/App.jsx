@@ -7,6 +7,7 @@ import DiseaseDetection from './pages/DiseaseDetection';
 import YieldPrediction from './pages/YieldPrediction';
 import MarketPrice from './pages/MarketPrice';
 import Chatbot from './pages/Chatbot';
+import Analytics from './pages/Analytics';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="yield" element={<YieldPrediction />} />
           <Route path="market" element={<MarketPrice />} />
           <Route path="chat" element={<Chatbot />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

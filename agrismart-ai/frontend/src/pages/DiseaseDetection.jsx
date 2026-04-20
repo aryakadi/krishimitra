@@ -1,19 +1,51 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Leaf, UploadCloud, AlertTriangle, CheckCircle, Shield, Droplets } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Leaf, UploadCloud, AlertTriangle, CheckCircle, Shield, Droplets, Clock, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { diseaseDetection } from '@/api/agriApi';
 import { useLanguage } from '@/hooks/useLanguage';
+import { generateAgriReport } from '@/utils/reportUtils';
+import { FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+const generateThumbnail = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 150;
+        const scale = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function DiseaseDetection() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('diseaseHistory');
+    if (saved) setHistory(JSON.parse(saved));
+  }, []);
 
   const onDrop = useCallback(acceptedFiles => {
     if (acceptedFiles?.length > 0) {
@@ -46,11 +78,52 @@ export default function DiseaseDetection() {
     try {
       const res = await diseaseDetection(formData);
       setResult(res);
+
+      try {
+        const thumbnail = await generateThumbnail(file);
+        const newRecord = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          disease_name: res.disease_name,
+          urgency_level: res.urgency_level,
+          image_preview: thumbnail
+        };
+        setHistory(prev => {
+          const updated = [newRecord, ...prev].slice(0, 10); // Keep max 10 records
+          localStorage.setItem('diseaseHistory', JSON.stringify(updated));
+          return updated;
+        });
+      } catch (thumbErr) {
+        console.error("Failed to map thumbnail for history", thumbErr);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadReport = () => {
+    if (!result) return;
+    generateAgriReport({
+      title: t('diseaseTitle') + ' ' + (t('report') || 'Report'),
+      subtitle: `${t('diseaseSub')}`,
+      language,
+      farmerInputs: {
+        'Detection Date': new Date().toLocaleDateString(),
+        'Detection Type': 'Leaf Image Analysis',
+        'Language': language === 'hi' ? 'Hindi' : (language === 'mr' ? 'Marathi' : 'English')
+      },
+      aiResults: {
+        'Disease Name': result.disease_name,
+        'Urgency Level': result.urgency_level,
+        'Confidence': result.confidence,
+        'Symptoms': result.symptoms?.join(', '),
+        'Treatment': result.treatment?.join(' | '),
+        'Organic Remedy': result.organic_remedy || 'N/A'
+      }
+    });
+    toast.success('Diagnostic report downloaded!');
   };
 
   const getUrgencyColor = (urgency) => {
@@ -61,11 +134,16 @@ export default function DiseaseDetection() {
     return 'success';
   };
 
+  const clearHistory = () => {
+    setHistory([]);
+    localStorage.removeItem('diseaseHistory');
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-3xl text-text-primary mb-2">🔬 Disease Detection</h1>
-        <p className="text-text-secondary">Upload a clear picture of the affected plant leaf for instant AI diagnosis.</p>
+        <h1 className="text-3xl text-text-primary mb-2">{t('diseaseTitle')}</h1>
+        <p className="text-text-secondary">{t('diseaseSub')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -88,8 +166,8 @@ export default function DiseaseDetection() {
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
                     <UploadCloud className="w-8 h-8 text-green-500" />
                   </div>
-                  <h3 className="text-xl font-medium">Drop leaf photo here</h3>
-                  <p className="text-sm text-green-600">or click to browse from device</p>
+                  <h3 className="text-xl font-medium">{t('dropPhoto')}</h3>
+                  <p className="text-sm text-green-600">{t('browsePhoto')}</p>
                   <p className="text-xs opacity-70 mt-4">Supported formats: JPG, PNG, WebP (Max 10MB)</p>
                 </div>
               )}
@@ -103,7 +181,7 @@ export default function DiseaseDetection() {
                 size="lg"
                 loading={loading}
               >
-                {loading ? "Analyzing Leaf Image..." : "Analyze Leaf"}
+                {loading ? t('consulting') : t('analyzeBtn')}
               </Button>
             </div>
           </Card>
@@ -121,18 +199,31 @@ export default function DiseaseDetection() {
                 
                 <div className="mb-6 mt-2">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
-                    <h2 className="text-2xl text-text-primary">{result.disease_name}</h2>
-                    <Badge variant={getUrgencyColor(result.urgency_level)} className="text-sm px-3 py-1 uppercase tracking-wider">
-                      {result.urgency_level} Urgency
-                    </Badge>
+                    <div className="flex-1">
+                      <h2 className="text-2xl text-text-primary">{result.disease_name}</h2>
+                      <Badge variant="neutral" className="mt-1">Confidence: {result.confidence}</Badge>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant={getUrgencyColor(result.urgency_level)} className="text-sm px-3 py-1 uppercase tracking-wider">
+                        {result.urgency_level}
+                      </Badge>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={handleDownloadReport}
+                        className="text-green-700 hover:text-green-800 hover:bg-green-50 p-2"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        {t('downloadReport')}
+                      </Button>
+                    </div>
                   </div>
-                  <Badge variant="neutral">Confidence: {result.confidence}</Badge>
                 </div>
 
                 <div className="flex-1 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
                   <div>
                     <h4 className="font-semibold text-text-primary flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Symptoms
+                      <AlertTriangle className="w-4 h-4 text-amber-500" /> {t('symptoms')}
                     </h4>
                     <ul className="list-disc pl-5 space-y-1 text-sm text-text-secondary">
                       {result.symptoms?.map((s, i) => <li key={i}>{s}</li>)}
@@ -141,7 +232,7 @@ export default function DiseaseDetection() {
 
                   <div>
                     <h4 className="font-semibold text-text-primary flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" /> Recommended Treatment
+                      <CheckCircle className="w-4 h-4 text-green-600" /> {t('treatment')}
                     </h4>
                     <ol className="list-decimal pl-5 space-y-1 text-sm text-green-900">
                       {result.treatment?.map((t, i) => <li key={i}>{t}</li>)}
@@ -150,7 +241,7 @@ export default function DiseaseDetection() {
 
                   <div>
                     <h4 className="font-semibold text-text-primary flex items-center gap-2 mb-2">
-                      <Shield className="w-4 h-4 text-sky-500" /> Prevention Measures
+                      <Shield className="w-4 h-4 text-sky-500" /> {t('prevention')}
                     </h4>
                     <ul className="list-disc pl-5 space-y-1 text-sm text-text-secondary">
                       {result.prevention?.map((p, i) => <li key={i}>{p}</li>)}
@@ -161,14 +252,10 @@ export default function DiseaseDetection() {
                     <div className="bg-amber-50 p-4 rounded-md border border-amber-200 flex items-start gap-3">
                       <Droplets className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="font-semibold text-amber-900 mb-1 text-sm">Organic Remedy</h4>
+                        <h4 className="font-semibold text-amber-900 mb-1 text-sm">{t('organic')}</h4>
                         <p className="text-amber-800 text-sm">{result.organic_remedy}</p>
                       </div>
                     </div>
-                  )}
-
-                  {result.additional_info && (
-                    <p className="text-sm text-text-muted italic bg-gray-50 p-3 rounded">{result.additional_info}</p>
                   )}
                 </div>
               </Card>
@@ -177,12 +264,76 @@ export default function DiseaseDetection() {
             <Card className="h-full flex items-center justify-center bg-gray-50 border-dashed border-2">
               <div className="text-center text-text-muted max-w-sm px-6">
                 <Leaf className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                <p>Upload an image and run analysis to see detailed disease diagnostic results here.</p>
+                <p>{t('loading')}</p>
               </div>
             </Card>
           )}
         </div>
       </div>
+
+      {/* ── Past Diagnoses Panel ──────────────────────────────────────────────── */}
+      {history.length > 0 && (
+        <Card className="max-w-7xl mx-auto overflow-hidden border-sky-100">
+          <div 
+            className="flex items-center justify-between p-2 cursor-pointer select-none"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <div className="flex items-center gap-2 text-text-primary">
+              <Clock className="w-5 h-5 text-sky-600" />
+              <h3 className="text-lg font-semibold">{t('pastDiagnoses')} ({history.length})</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              {showHistory ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+            </div>
+          </div>
+          
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t border-sky-50 pt-4 mt-2"
+              >
+                <div className="flex justify-end mb-4 px-2">
+                  <button 
+                    onClick={clearHistory}
+                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t('clearHistory')}
+                  </button>
+                </div>
+                {/* Records list... */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2 pb-2">
+                  {history.map((record) => (
+                    <div key={record.id} className="flex gap-3 bg-white shadow-sm p-3 rounded-xl border border-gray-100 hover:border-sky-200 transition-colors">
+                      <img 
+                        src={record.image_preview} 
+                        alt={record.disease_name} 
+                        className="w-14 h-14 object-cover rounded-lg border border-gray-100 shrink-0" 
+                      />
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <p className="font-semibold text-text-primary text-sm truncate" title={record.disease_name}>
+                          {record.disease_name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {new Date(record.date).toLocaleDateString()}
+                        </p>
+                        <div className="mt-auto pt-1">
+                          <Badge variant={getUrgencyColor(record.urgency_level)} className="text-[10px] px-1.5 py-0 leading-tight inline-block tracking-wider uppercase">
+                            {record.urgency_level}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Card>
+      )}
     </div>
   );
 }

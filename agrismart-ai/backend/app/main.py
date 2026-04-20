@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from app.core.config import settings
 from app.routers.api_routers import (
-    crop_router, disease_router, yield_router, market_router, chat_router
+    crop_router, disease_router, yield_router, market_router, chat_router, weather_router, analytics_router
 )
 
 app = FastAPI(
@@ -29,6 +29,8 @@ app.include_router(disease_router, prefix=prefix, tags=["Disease Detection"])
 app.include_router(yield_router, prefix=prefix, tags=["Yield Prediction"])
 app.include_router(market_router, prefix=prefix, tags=["Market Price"])
 app.include_router(chat_router, prefix=prefix, tags=["Chatbot"])
+app.include_router(weather_router, prefix=prefix, tags=["Weather"])
+app.include_router(analytics_router, prefix=prefix, tags=["Analytics"])
 
 @app.get("/")
 async def root():

@@ -36,7 +36,7 @@ def log_crop_recommendation(n: float, p: float, k: float, ph: float, rainfall: f
         query = """
             INSERT INTO FACT_CROP_RECOMMENDATION 
             (nitrogen, phosphorus, potassium, ph_level, rainfall_mm, temperature_c, region, top_recommended_crop, all_recommendations, language)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s), %s)
+            SELECT %s, %s, %s, %s, %s, %s, %s, %s, PARSE_JSON(%s), %s
         """
         cursor.execute(query, (n, p, k, ph, rainfall, temp, region, top_crop, all_recs_json, language))
         cursor.close()
@@ -72,7 +72,7 @@ def log_query(endpoint: str, request_payload: dict, response_summary: str, langu
         query = """
             INSERT INTO FACT_QUERY_LOGS 
             (endpoint, request_payload, response_summary, language, region)
-            VALUES (%s, PARSE_JSON(%s), %s, %s, %s)
+            SELECT %s, PARSE_JSON(%s), %s, %s, %s
         """
         cursor.execute(query, (endpoint, payload_json, response_summary, language, region))
         cursor.close()
@@ -102,3 +102,77 @@ def get_regional_crop_stats(region: str) -> list:
     except Exception as e:
         logger.warning(f"Failed to fetch regional crop stats: {str(e)}")
         return []
+
+def get_analytics_summary() -> dict:
+    try:
+        conn = get_snowflake_connection()
+        if not conn: 
+            return {"error": "Snowflake not connected"}
+        
+        cursor = conn.cursor()
+        
+        # 1. Most detected diseases this week
+        cursor.execute("""
+            SELECT disease_name, count(*) as count
+            FROM FACT_DISEASE_DETECTION
+            WHERE created_at >= CURRENT_DATE() - 7
+            GROUP BY disease_name
+            ORDER BY count DESC
+            LIMIT 5
+        """)
+        diseases = [{"name": row[0], "count": row[1]} for row in cursor.fetchall()]
+        
+        # 2. Most recommended crops across all regions
+        cursor.execute("""
+            SELECT top_recommended_crop, count(*) as count
+            FROM FACT_CROP_RECOMMENDATION
+            WHERE top_recommended_crop != 'None' AND top_recommended_crop IS NOT NULL
+            GROUP BY top_recommended_crop
+            ORDER BY count DESC
+            LIMIT 5
+        """)
+        crops = [{"crop": row[0], "count": row[1]} for row in cursor.fetchall()]
+        
+        # 3. Usage counts per feature
+        # Get counts from specific fact tables
+        cursor.execute("SELECT count(*) FROM FACT_CROP_RECOMMENDATION")
+        crop_count = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT count(*) FROM FACT_DISEASE_DETECTION")
+        disease_count = cursor.fetchone()[0]
+        
+        # Get counts from general query logs
+        cursor.execute("""
+            SELECT endpoint, count(*) as count
+            FROM FACT_QUERY_LOGS
+            GROUP BY endpoint
+        """)
+        query_logs = cursor.fetchall()
+        
+        usage = [
+            {"feature": "Crop Rec", "uses": crop_count},
+            {"feature": "Disease Detect", "uses": disease_count}
+        ]
+        
+        for endpoint, count in query_logs:
+            feat_name = endpoint.replace("/api/v1/", "").replace("/", " ").title()
+            # If endpoint starts with / (like /yield-prediction), clean it up
+            if endpoint.startswith("/"):
+                feat_name = endpoint[1:].replace("-", " ").title()
+            usage.append({"feature": feat_name, "uses": count})
+            
+        cursor.close()
+        conn.close()
+        
+        return {
+            "top_diseases": diseases,
+            "top_crops": crops,
+            "feature_usage": sorted(usage, key=lambda x: x["uses"], reverse=True)
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch analytics summary: {str(e)}")
+        return {
+            "top_diseases": [],
+            "top_crops": [],
+            "feature_usage": []
+        }

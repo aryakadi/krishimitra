@@ -1,6 +1,11 @@
 import json
+import os
 from typing import List, Union
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Force reload from .env on every hot reload to defeat uvicorn caching old keys
+load_dotenv(override=True)
 
 class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
@@ -17,6 +22,9 @@ class Settings(BaseSettings):
         "https://krishimitra-nine-wine.vercel.app"
     ]
     GEMINI_MODEL: str = "gemini-1.5-flash"
+    NVIDIA_API_KEY: str = ""
+    NVIDIA_MODEL: str = "mistralai/mistral-small-4-119b-2603"
+    OPENWEATHERMAP_API_KEY: str = ""
     
     class Config:
         env_file = ".env"

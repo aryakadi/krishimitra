@@ -1,18 +1,22 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Leaf, Home, Sprout, Bug, TrendingUp, IndianRupee, MessageSquare } from 'lucide-react';
+import { Leaf, Home, Sprout, Bug, TrendingUp, IndianRupee, MessageSquare, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/utils/cn';
-
-const navItems = [
-  { name: 'Dashboard', path: '/', icon: Home },
-  { name: 'Crop Advisor', path: '/crop', icon: Sprout },
-  { name: 'Disease Detect', path: '/disease', icon: Bug },
-  { name: 'Yield Predict', path: '/yield', icon: TrendingUp },
-  { name: 'Market Price', path: '/market', icon: IndianRupee },
-  { name: 'AI Chatbot', path: '/chat', icon: MessageSquare },
-];
+import { useLanguage } from '@/hooks/useLanguage';
 
 export function Sidebar() {
+  const { t } = useLanguage();
+
+  const navItems = [
+    { name: t('dashboard'), path: '/', icon: Home },
+    { name: t('cropAdvisor'), path: '/crop', icon: Sprout },
+    { name: t('diseaseDetect'), path: '/disease', icon: Bug },
+    { name: t('yieldPredict'), path: '/yield', icon: TrendingUp },
+    { name: t('marketPrice'), path: '/market', icon: IndianRupee },
+    { name: t('aiChatbot'), path: '/chat', icon: MessageSquare },
+    { name: t('analytics'), path: '/analytics', icon: LayoutDashboard },
+  ];
+
   return (
     <aside className="w-16 md:w-60 bg-green-900 text-white flex flex-col transition-all duration-300 z-20">
       <div className="p-4 flex items-center gap-3">
@@ -41,7 +45,7 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 text-xs text-green-300 text-center hidden md:block border-t border-green-800 mt-auto">
-        v1.0 • Powered by Gemini
+        {t('v_ece')}
       </div>
     </aside>
   );

@@ -3,18 +3,20 @@ import { useLocation } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
 
-const routeNames = {
-  '/': 'Welcome to AgriSmart AI',
-  '/crop': 'Crop Advisor',
-  '/disease': 'Disease Detection',
-  '/yield': 'Yield Prediction',
-  '/market': 'Market Price Insights',
-  '/chat': 'AgriBot Assistant'
-};
-
 export function Header() {
-  const location = useLocation();
-  const { language, setLanguage } = useLanguage();
+  const location = { pathname: useLocation().pathname };
+  const { language, setLanguage, t } = useLanguage();
+
+  const routeNames = {
+    '/': t('welcome'),
+    '/crop': t('cropAdvisor'),
+    '/disease': t('diseaseDetect'),
+    '/yield': t('yieldPredict'),
+    '/market': t('marketPrice'),
+    '/chat': t('aiChatbot'),
+    '/analytics': t('analytics')
+  };
+  
   const pageTitle = routeNames[location.pathname] || 'AgriSmart AI';
 
   return (
