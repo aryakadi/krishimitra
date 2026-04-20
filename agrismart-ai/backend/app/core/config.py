@@ -16,7 +16,7 @@ class Settings(BaseSettings):
         "http://localhost:3000", 
         "https://krishimitra-nine-wine.vercel.app"
     ]
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     
     class Config:
         env_file = ".env"

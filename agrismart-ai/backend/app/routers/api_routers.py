@@ -6,12 +6,26 @@ from app.models.schemas import (
     MarketPriceRequest, MarketPriceResponse, ChatRequest, ChatResponse
 )
 from app.services import gemini_service, snowflake_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 crop_router = APIRouter()
 disease_router = APIRouter()
 yield_router = APIRouter()
 market_router = APIRouter()
 chat_router = APIRouter()
+
+def handle_api_exception(e: Exception):
+    error_msg = str(e)
+    logger.error(f"API Error: {error_msg}")
+    
+    if "429" in error_msg or "Quota exceeded" in error_msg or "quota" in error_msg.lower():
+        raise HTTPException(
+            status_code=429, 
+            detail="AI service rate limit or quota exceeded. Please try again in a minute or check your API key billing."
+        )
+    raise HTTPException(status_code=500, detail=error_msg)
 
 # --- Crop Router ---
 @crop_router.post("/crop-recommendation", response_model=CropRecommendationResponse)
@@ -34,7 +48,7 @@ async def get_crop_recommendation(req: CropRecommendationRequest):
         
         return CropRecommendationResponse(success=True, **result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_exception(e)
 
 # --- Disease Router ---
 @disease_router.post("/disease-detection", response_model=DiseaseDetectionResponse)
@@ -62,7 +76,7 @@ async def detect_disease(
         
         return DiseaseDetectionResponse(success=True, **result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_exception(e)
 
 # --- Yield Router ---
 @yield_router.post("/yield-prediction", response_model=YieldPredictionResponse)
@@ -86,7 +100,7 @@ async def predict_yield_val(req: YieldPredictionRequest):
         
         return YieldPredictionResponse(success=True, **result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_exception(e)
 
 # --- Market Router ---
 @market_router.post("/price-forecast", response_model=MarketPriceResponse)
@@ -109,7 +123,7 @@ async def price_forecast(req: MarketPriceRequest):
         
         return MarketPriceResponse(success=True, **result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_exception(e)
 
 # --- Chat Router ---
 @chat_router.post("/chat", response_model=ChatResponse)
@@ -133,4 +147,5 @@ async def chat_bot(req: ChatRequest):
         
         return ChatResponse(success=True, language=req.language, **result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_api_exception(e)
+
