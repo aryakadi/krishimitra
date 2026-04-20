@@ -1,0 +1,31 @@
+# AgriSmart AI — ML Training Requirements
+# Install with: pip install -r requirements_ml.txt
+# These are SEPARATE from the web backend. Run training scripts offline.
+
+# Core ML
+scikit-learn>=1.3.0
+numpy>=1.24.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+joblib>=1.3.0
+
+# Explainable AI
+shap>=0.43.0
+
+# Time-series (Price ARIMA)
+statsmodels>=0.14.0
+pmdarima>=2.0.3
+
+# Deep Learning (Disease CNN) — large install, optional
+tensorflow>=2.13.0       # or: tensorflow-cpu for lighter install
+Pillow>=10.0.0
+
+# LSTM alternative to ARIMA
+# keras already included with tensorflow
+
+# Data download (PlantVillage)
+kaggle>=1.5.13           # for dataset download via CLI
+
+# Snowflake integration (write model outputs)
+snowflake-connector-python>=3.12.0
+python-dotenv>=1.0.0

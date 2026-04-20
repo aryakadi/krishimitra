@@ -1,63 +1,58 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: 60000,
-});
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const message = error.response?.data?.detail || error.message || 'An error occurred';
-    toast.error(message);
-    return Promise.reject(error);
-  }
-);
+const api = axios.create({ baseURL: API_BASE, timeout: 60000 });
 
-export const cropRecommendation = async (payload) => {
-  const { data } = await api.post('/crop-recommendation', payload);
-  return data;
-};
+// ─── Existing endpoints ───────────────────────────────────────────────────────
+export const getCropRecommendation   = (data) => api.post('/crop-recommendation', data);
+export const detectDisease           = (formData) => api.post('/disease-detection', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const predictYield            = (data) => api.post('/yield-prediction', data);
+export const getPriceForecast        = (data) => api.post('/price-forecast', data);
+export const sendChat                = (data) => api.post('/chat', data);
+export const getWeather              = (params) => api.get('/weather', { params });
+export const searchCities            = (q) => api.get('/weather/search', { params: { q } });
 
-export const diseaseDetection = async (formData) => {
-  const { data } = await api.post('/disease-detection', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-};
+// ─── ADBMS-spec aliased endpoints ────────────────────────────────────────────
+export const predictDisease          = (formData) => api.post('/predict-disease', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const predictYieldAdbms       = (data) => api.post('/predict-yield', data);
+export const predictPrice            = (data) => api.post('/predict-price', data);
 
-export const yieldPrediction = async (payload) => {
-  const { data } = await api.post('/yield-prediction', payload);
-  return data;
-};
+// ─── Analytics — Snowflake-powered ───────────────────────────────────────────
+export const fetchAnalyticsSummary   = ()              => api.get('/analytics/summary');
+export const fetchAnalytics          = ()              => api.get('/analytics');
+export const fetchCropTrends         = ()              => api.get('/analytics/crop-trends');
+export const fetchDiseaseTrends      = ()              => api.get('/analytics/disease-trends');
+export const fetchYieldComparison    = ()              => api.get('/analytics/yield-comparison');
+export const fetchPriceHistory       = (crop, loc='') => api.get('/analytics/price-history', { params: { crop, location: loc } });
 
-export const priceForecast = async (payload) => {
-  const { data } = await api.post('/price-forecast', payload);
-  return data;
-};
+// ─── Data Warehouse info ──────────────────────────────────────────────────────
+export const fetchTableCounts        = ()              => api.get('/dw/table-counts');
 
-export const sendChat = async (payload) => {
-  const { data } = await api.post('/chat', payload);
-  return data;
-};
+// ─── Feedback Loop ────────────────────────────────────────────────────────────
+export const submitFeedback          = (data)          => api.post('/feedback', data);
+export const fetchFeedbackSummary    = ()              => api.get('/feedback/summary');
 
-export const searchCities = async (query) => {
-  const { data } = await api.get(`/weather/search?q=${encodeURIComponent(query)}`);
-  return data.results || [];
-};
+// ─── PDF Report ───────────────────────────────────────────────────────────────
+export const generateReport = (data) => api.post('/report/generate', data);
 
-export const fetchWeather = async (city) => {
-  const { data } = await api.get(`/weather?city=${encodeURIComponent(city)}`);
-  return data;
-};
+// ─── Backward-compat aliases (used by existing page components) ───────────────
+export const cropRecommendation      = (data) => getCropRecommendation(data).then(r => r.data);
+export const diseaseDetection        = (formData) => detectDisease(formData).then(r => r.data);
+export const yieldPrediction         = (data) => predictYield(data).then(r => r.data);
+export const priceForecast           = (data) => getPriceForecast(data).then(r => r.data);
+export const fetchWeather            = (city) => getWeather({ city }).then(r => r.data);
+export const fetchWeatherByCoords    = (lat, lon) => getWeather({ lat, lon }).then(r => r.data);
 
-export const fetchWeatherByCoords = async (lat, lon) => {
-  const { data } = await api.get(`/weather?lat=${lat}&lon=${lon}`);
-  return data;
-};
-
-export const fetchAnalyticsSummary = async () => {
-  const { data } = await api.get('/analytics/summary');
-  return data;
+// ─── Utility: download base64 PDF ────────────────────────────────────────────
+export const downloadPdfReport = async (requestData) => {
+  const res = await generateReport(requestData);
+  const { pdf_base64, filename } = res.data;
+  const bytes  = atob(pdf_base64);
+  const buffer = new Uint8Array(bytes.length).map((_, i) => bytes.charCodeAt(i));
+  const blob   = new Blob([buffer], { type: 'application/pdf' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = filename || 'agrismart_report.pdf'; a.click();
+  URL.revokeObjectURL(url);
 };

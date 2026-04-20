@@ -41,9 +41,15 @@ export default function Chatbot() {
         context: "Chatbot Page"
       });
       
+      const data = res.data;
+
       setHistory(prev => [
-        ...prev, 
-        { role: 'assistant', content: res.reply, suggestions: res.suggestions }
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.reply || "Sorry, I couldn't generate a response. Please try again.",
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : []
+        }
       ]);
     } catch (err) {
       console.error(err);

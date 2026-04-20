@@ -8,6 +8,8 @@ import YieldPrediction from './pages/YieldPrediction';
 import MarketPrice from './pages/MarketPrice';
 import Chatbot from './pages/Chatbot';
 import Analytics from './pages/Analytics';
+import DataWarehouse from './pages/DataWarehouse';
+import Feedback from './pages/Feedback';
 
 function App() {
   return (
@@ -16,13 +18,15 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="crop" element={<CropRecommendation />} />
-          <Route path="disease" element={<DiseaseDetection />} />
-          <Route path="yield" element={<YieldPrediction />} />
-          <Route path="market" element={<MarketPrice />} />
-          <Route path="chat" element={<Chatbot />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="crop"           element={<CropRecommendation />} />
+          <Route path="disease"        element={<DiseaseDetection />} />
+          <Route path="yield"          element={<YieldPrediction />} />
+          <Route path="market"         element={<MarketPrice />} />
+          <Route path="chat"           element={<Chatbot />} />
+          <Route path="analytics"      element={<Analytics />} />
+          <Route path="data-warehouse" element={<DataWarehouse />} />
+          <Route path="feedback"       element={<Feedback />} />
+          <Route path="*"             element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
