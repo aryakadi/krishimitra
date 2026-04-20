@@ -202,9 +202,9 @@ def _fallback_disease_via_nim(image_bytes: bytes, language: str) -> dict:
     
     # Try vision-capable NIM models
     vision_models = [
-        "microsoft/phi-3.5-vision-instruct",
-        "nvidia/llama-3.2-11b-vision-instruct",
-        "meta/llama-4-scout-17b-16e-instruct",
+        "meta/llama-3.2-11b-vision-instruct",
+        "meta/llama-3.2-90b-vision-instruct",
+        "microsoft/phi-3-vision-128k-instruct",
     ]
     
     for model in vision_models:

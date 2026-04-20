@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         "http://localhost:3000", 
         "https://krishimitra-nine-wine.vercel.app"
     ]
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
     NVIDIA_API_KEY: str = ""
     NVIDIA_MODEL: str = "mistralai/mistral-small-4-119b-2603"
     OPENWEATHERMAP_API_KEY: str = ""
