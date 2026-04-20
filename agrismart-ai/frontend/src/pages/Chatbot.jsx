@@ -5,7 +5,7 @@ import { sendChat } from '@/api/agriApi';
 import { useLanguage } from '@/hooks/useLanguage';
 
 export default function Chatbot() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [input, setInput] = useState('');
   const [history, setHistory] = useState([
     { role: 'assistant', content: "🌾 Namaste! I'm AgriBot, your farming assistant. Ask me anything about crops, diseases, weather, or government schemes!", suggestions: ["Tell me about PM-KISAN scheme", "Best crops for black soil in summer", "How to manage whitefly in cotton?"] }
@@ -68,15 +68,15 @@ export default function Chatbot() {
             <Leaf className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-sora font-semibold text-green-900 leading-tight">💬 AgriBot</h2>
-            <p className="text-xs text-green-700">Online • Powered by Gemini AI</p>
+            <h2 className="font-sora font-semibold text-green-900 leading-tight">{t('chatTitle')}</h2>
+            <p className="text-xs text-green-700">{t('chatSub')}</p>
           </div>
         </div>
         <button 
           onClick={clearChat}
           className="text-sm text-text-muted hover:text-green-700 transition-colors"
         >
-          Clear Chat
+          {t('clearChat')}
         </button>
       </div>
 
@@ -148,7 +148,7 @@ export default function Chatbot() {
           <input
             type="text"
             className="flex-1 border border-border-color rounded-full px-5 py-3 pr-12 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 shadow-sm bg-gray-50"
-            placeholder="Type your farming question..."
+            placeholder={t('chatPlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}

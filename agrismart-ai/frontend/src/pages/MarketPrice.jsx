@@ -8,15 +8,41 @@ import { Badge } from '@/components/ui/Badge';
 import { PriceChart } from '@/components/charts/PriceChart';
 import { priceForecast } from '@/api/agriApi';
 import { useLanguage } from '@/hooks/useLanguage';
+import { generateAgriReport } from '@/utils/reportUtils';
+import { FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function MarketPrice() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
   const [formData, setFormData] = useState({
     crop: '', location: '', quantity_quintals: '', current_price: ''
   });
+
+  const handleDownloadReport = () => {
+    if (!result) return;
+    generateAgriReport({
+      title: t('marketTitle') + ' ' + (t('report') || 'Report'),
+      subtitle: `${t('marketSub')}`,
+      language,
+      farmerInputs: {
+        'Target Crop': result.crop,
+        'Market Location': result.location,
+        'Reference Quantity': formData.quantity_quintals ? `${formData.quantity_quintals} Quintals` : 'Standard Unit',
+        'Reporting Language': language === 'hi' ? 'Hindi' : (language === 'mr' ? 'Marathi' : 'English')
+      },
+      aiResults: {
+        'Current Market Range': result.current_price_range,
+        'Predicted Trend': `${result.predicted_trend.toUpperCase()}`,
+        'Best Selling Window': result.best_selling_window,
+        'Demand Status': result.market_demand,
+        'Advice': `${result.storage_advice} ${result.export_potential}`
+      }
+    });
+    toast.success('Market report downloaded!');
+  };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.id]: e.target.value });
 
@@ -42,27 +68,27 @@ export default function MarketPrice() {
   };
 
   const getTrendColor = (trend) => {
-    const t = trend?.toLowerCase() || '';
-    if (t.includes('increas') || t.includes('up')) return 'success';
-    if (t.includes('decreas') || t.includes('down')) return 'danger';
+    const tVal = trend?.toLowerCase() || '';
+    if (tVal.includes('increas') || tVal.includes('up')) return 'success';
+    if (tVal.includes('decreas') || tVal.includes('down')) return 'danger';
     return 'warning';
   };
 
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-3xl text-text-primary mb-2">💰 Market Price Insights</h1>
-        <p className="text-text-secondary">Analyze APMC data and AI forecasts to time your market sales perfectly.</p>
+        <h1 className="text-3xl text-text-primary mb-2">💰 {t('marketTitle')}</h1>
+        <p className="text-text-secondary">{t('marketSub')}</p>
       </div>
 
       <Card>
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
-          <Input id="crop" label="Crop Name" required value={formData.crop} onChange={handleChange} placeholder="e.g. Soybean" className="flex-1" />
-          <Input id="location" label="Market Location (City/APMC)" required value={formData.location} onChange={handleChange} placeholder="e.g. Latur" className="flex-1" />
-          <Input id="quantity_quintals" label="Quantity (Quintals)" type="number" step="0.1" value={formData.quantity_quintals} onChange={handleChange} placeholder="Optional" className="w-full md:w-32" />
-          <Input id="current_price" label="Current Price (₹)" type="number" step="1" value={formData.current_price} onChange={handleChange} placeholder="Optional" className="w-full md:w-32" />
+          <Input id="crop" label={t('cropType')} required value={formData.crop} onChange={handleChange} placeholder="e.g. Soybean" className="flex-1" />
+          <Input id="location" label={t('region')} required value={formData.location} onChange={handleChange} placeholder="e.g. Latur" className="flex-1" />
+          <Input id="quantity_quintals" label={t('quantity')} type="number" step="0.1" value={formData.quantity_quintals} onChange={handleChange} placeholder="Optional" className="w-full md:w-32" />
+          <Input id="current_price" label={t('currentPrice')} type="number" step="1" value={formData.current_price} onChange={handleChange} placeholder="Optional" className="w-full md:w-32" />
           <Button type="submit" loading={loading} className="w-full md:w-auto px-6 whitespace-nowrap">
-            {loading ? "Forecasting..." : "Get Forecast"}
+            {loading ? t('loading') : t('forecastBtn')}
           </Button>
         </form>
       </Card>
@@ -78,10 +104,21 @@ export default function MarketPrice() {
                 </div>
               </div>
               <div className="text-right mt-4 md:mt-0">
-                <p className="text-sm font-medium mb-1">Predicted Trend</p>
+                <p className="text-sm font-medium mb-1">{t('trend')}</p>
                 <Badge variant={getTrendColor(result.predicted_trend)} className="text-sm px-3 py-1 uppercase font-bold">
                   {result.predicted_trend}
                 </Badge>
+                <div className="mt-4">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={handleDownloadReport}
+                    className="text-green-700 hover:text-green-800 hover:bg-green-50 p-2"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    {t('downloadReport')}
+                  </Button>
+                </div>
               </div>
             </div>
             
@@ -91,7 +128,7 @@ export default function MarketPrice() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Card className="bg-gradient-to-br from-white to-green-50 border-green-100 flex flex-col items-center text-center p-6">
               <Calendar className="w-10 h-10 text-green-600 mb-4" />
-              <h4 className="font-semibold text-text-primary mb-2">Best Selling Window</h4>
+              <h4 className="font-semibold text-text-primary mb-2">{t('bestTime')}</h4>
               <p className="text-sm text-text-secondary">{result.best_selling_window}</p>
             </Card>
 
@@ -106,17 +143,6 @@ export default function MarketPrice() {
               <h4 className="font-semibold text-text-primary mb-2">Storage / Export Advice</h4>
               <p className="text-sm text-text-secondary">{result.storage_advice} {result.export_potential}</p>
             </Card>
-          </div>
-
-          <div>
-            <h4 className="font-medium text-text-secondary mb-3">Key Price Factors</h4>
-            <div className="flex flex-wrap gap-2">
-              {result.price_factors?.map((factor, i) => (
-                <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full border border-gray-200">
-                  {factor}
-                </span>
-              ))}
-            </div>
           </div>
         </motion.div>
       )}

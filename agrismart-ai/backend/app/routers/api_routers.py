@@ -5,13 +5,24 @@ from app.models.schemas import (
     DiseaseDetectionResponse, YieldPredictionRequest, YieldPredictionResponse,
     MarketPriceRequest, MarketPriceResponse, ChatRequest, ChatResponse
 )
-from app.services import gemini_service, snowflake_service
+from app.services import gemini_service, snowflake_service, weather_service
 
 crop_router = APIRouter()
 disease_router = APIRouter()
 yield_router = APIRouter()
 market_router = APIRouter()
 chat_router = APIRouter()
+weather_router = APIRouter()
+analytics_router = APIRouter()
+
+# --- Analytics Router ---
+@analytics_router.get("/analytics/summary")
+async def get_analytics_dash():
+    try:
+        data = snowflake_service.get_analytics_summary()
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- Crop Router ---
 @crop_router.post("/crop-recommendation", response_model=CropRecommendationResponse)
@@ -134,3 +145,37 @@ async def chat_bot(req: ChatRequest):
         return ChatResponse(success=True, language=req.language, **result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Weather Router ---
+@weather_router.get("/weather/search")
+async def search_city(q: str):
+    try:
+        if not q or len(q) < 2:
+            return {"success": True, "results": []}
+        results = weather_service.search_cities(q)
+        return {"success": True, "results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@weather_router.get("/weather")
+async def get_weather(
+    city: Optional[str] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+):
+    try:
+        if lat is not None and lon is not None:
+            result = weather_service.get_weather_by_coords(lat, lon)
+        elif city:
+            result = weather_service.get_weather_by_city(city)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Provide a 'city' name or both 'lat' and 'lon' coordinates."
+            )
+        return {"success": True, **result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Weather fetch failed: {str(e)}")

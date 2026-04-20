@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { strings } from '@/utils/translations';
 
 const STORAGE_KEY = 'agrismart_lang';
 const EVENT_NAME = 'agrismart_lang_change';
@@ -24,11 +25,15 @@ export function useLanguage() {
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: newLang }));
   };
 
+  const t = (key) => {
+    return strings[language]?.[key] || strings['en'][key] || key;
+  };
+
   const langLabel = {
     en: 'English',
     hi: 'हिंदी',
     mr: 'मराठी'
   }[language];
 
-  return { language, setLanguage, langLabel };
+  return { language, setLanguage, langLabel, t };
 }
